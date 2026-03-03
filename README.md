@@ -1,36 +1,157 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+🎬 AI Movie Insight Builder
+A Premium Full-Stack AI Platform built for the Brew Full-Stack Developer Internship Assignment.
 
-## Getting Started
+🔗 Live Demo:https://abhirajchandrawanshi-ai-movie-insig.vercel.app/
 
-First, run the development server:
+📖 Overview:-
+AI Movie Insight Builder allows users to input an IMDb movie ID (e.g., tt0133093) and dynamically retrieve:
+🎬 Movie Title & Poster
+👥 Cast List
+📅 Release Year & IMDb Rating
+📝 Official Plot Summary
+🤖 AI-Generated Audience Insight
+📊 Sentiment Classification (Positive / Mixed / Negative)
 
-```bash
+The application aggregates real audience reviews from TMDB and uses Google Gemini to generate structured AI sentiment analysis.
+
+🧩 Assignment Requirements Coverage:-
+As per the problem statement 
+SDE Intern - Assignment II, the app implements:
+
+✔ IMDb ID input
+✔ Fetch movie metadata (poster, cast, year, rating)
+✔ Retrieve audience reviews
+✔ Use AI to summarize insights
+✔ Display results in a clean UI
+✔ Responsive design
+✔ Error handling & validation
+✔ Live deployment
+
+🏗️ Tech Stack:-
+Frontend:-
+Next.js (App Router)
+React
+TypeScript
+Tailwind CSS
+
+Backend:-
+Next.js API Routes (Node.js runtime)
+
+External APIs:-
+OMDb API – Movie metadata
+TMDB API – Audience reviews
+GEMINI API (gemini-2.5-flash) – AI summarization & sentiment extraction
+
+Deployment:-
+Vercel (GitHub-integrated CI/CD)
+
+⚙️ Architecture:-
+Data Flow Pipeline
+IMDb ID Input
+      ↓
+OMDb API (metadata)
+      ↓
+TMDB API (reviews)
+      ↓
+Gemini AI (summary + sentiment)
+      ↓
+Structured UI Output
+
+🧠 AI Implementation:-
+Uses gemini-2.5-flash
+Strict JSON prompt engineering
+Defensive parsing with fallback handling
+Sentiment extracted as:
+Positive
+Mixed
+Negative
+
+Robust Handling Includes:
+Model error detection
+JSON validation
+Safe parsing with regex extraction
+Graceful fallback messaging
+
+🚀 Local Setup:-
+
+1️⃣ Clone Repository
+git clone https://github.com/abhirajchandrawanshi/ai-movie-insight.git
+cd ai-movie-insight
+
+2️⃣ Install Dependencies
+npm install
+
+3️⃣ Create .env.local
+TMDB_API_KEY=your_tmdb_key
+OMDB_API_KEY=your_omdb_key
+GEMINI_API_KEY=your_gemini_key
+
+4️⃣ Run Development Server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Visit:
+http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+🧪 Testing:-
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Basic testing includes:
+API error response validation
+Invalid IMDb ID handling
+AI JSON parsing validation
+Fallback summary verification
+Run:
+npm test
 
-## Learn More
+🎨 UI/UX Features:-
+Responsive layout (mobile + desktop)
+Modern gradient theme
+Glassmorphism effect
+Animated result rendering
+Loading states
+Clear error messaging
+Structured sentiment badge with color coding
 
-To learn more about Next.js, take a look at the following resources:
+🛡️ Edge Case Handling:-
+Invalid IMDb IDs
+Missing TMDB reviews
+AI API 404 / model errors
+Network timeout resilience
+Malformed AI JSON response
+Empty sentiment fallback
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+📌 Tech Stack Rationale:-
+Why Next.js?
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Unified frontend and backend framework
+Built-in API routing
+Seamless Vercel deployment
+Production-grade performance
 
-## Deploy on Vercel
+Why TypeScript?
+Strong typing reduces runtime errors
+Improves maintainability
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Why Gemini?
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Structured JSON output
+Strong summarization capabilities
+Efficient sentiment classification
+
+📌 Assumptions:-
+
+IMDb ID provided corresponds to a valid movie.
+TMDB contains sufficient audience reviews.
+Gemini returns structured JSON as instructed.
+
+🤖 AI Usage Disclosure:-
+
+AI tools were used to accelerate iteration and refine prompt design.
+All architectural decisions, implementation logic, and debugging were independently understood and implemented.
+
+👨‍💻 Author:
+Abhiraj Chandrawanshi
+B.Tech Computer Science
+Full-Stack Developer
+
+GitHub:
+https://github.com/abhirajchandrawanshi

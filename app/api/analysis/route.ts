@@ -1,5 +1,52 @@
 import { NextResponse } from "next/server";
 
+const wait = (ms: number) => new Promise((res) => setTimeout(res, ms));
+
+async function fetchGeminiWithRetry(
+  url: string,
+  options: RequestInit,
+  retries = 3
+) {
+  for (let i = 0; i < retries; i++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
+    try {
+      const res = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeout);
+
+      // Success
+      if (res.ok) return res;
+
+      // Retry only on 503
+      if (res.status === 503 && i < retries - 1) {
+        const delay = Math.pow(2, i) * 1000; // 1s, 2s, 4s
+        console.log(`Gemini busy, retrying in ${delay}ms...`);
+        await wait(delay);
+        continue;
+      }
+
+      return res;
+    } catch (err: any) {
+      clearTimeout(timeout);
+
+      // Retry network failures
+      if (i < retries - 1) {
+        const delay = Math.pow(2, i) * 1000;
+        console.log(`Network issue, retrying in ${delay}ms...`);
+        await wait(delay);
+        continue;
+      }
+
+      throw err;
+    }
+  }
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const tmdbID = searchParams.get("tmdbID");
@@ -7,40 +54,39 @@ export async function GET(req: Request) {
 
   if (!tmdbID) {
     return NextResponse.json(
-      { error: "No TMDb ID provided" },
+      { success: false, error: "No TMDb ID provided" },
       { status: 400 }
     );
   }
 
   try {
-    // 📝 Fetch Reviews
+    // Fetch Reviews
     const reviewRes = await fetch(
-      `https://api.themoviedb.org/3/movie/${tmdbID}/reviews?api_key=${process.env.TMDB_API_KEY}`,
-      { next: { revalidate: 3600 } }
+      `https://api.themoviedb.org/3/movie/${tmdbID}/reviews?api_key=${process.env.TMDB_API_KEY}`
     );
 
     if (!reviewRes.ok) {
-      if (process.env.NODE_ENV !== "production") {
-        console.error("TMDb reviews fetch failed", {
-          status: reviewRes.status,
-          tmdbID,
-        });
-      }
-      return NextResponse.json(
-        { error: "Failed to fetch reviews for AI analysis" },
-        { status: 502 }
-      );
+      console.error("TMDb reviews fetch failed", {
+        status: reviewRes.status,
+        tmdbID,
+      });
+
+      return NextResponse.json({
+        success: false,
+        error: "Failed to fetch reviews for AI analysis",
+      });
     }
 
     const reviewData = await reviewRes.json();
 
-    const reviewsText = reviewData.results
-      ?.slice(0, 3)
-      ?.map((r: any) => r.content.substring(0, 400))
-      ?.join("\n\n") || "No reviews available.";
+    const reviewsText =
+      reviewData.results
+        ?.slice(0, 3)
+        ?.map((r: any) => r.content.substring(0, 400))
+        ?.join("\n\n") || "No reviews available.";
 
-    // 🤖 Gemini AI
-    const aiRes = await fetch(
+    // Gemini Call
+    const aiRes = await fetchGeminiWithRetry(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
         method: "POST",
@@ -60,7 +106,7 @@ ${reviewsText}
 
 Return ONLY valid JSON (no markdown, no code fences) with this exact schema:
 {
-  "aiSummary": "Exactly two concise, professional sentences summarizing audience feedback. No emojis. No casual tone.",
+  "aiSummary": "Exactly two concise, professional sentences summarizing audience feedback.",
   "aiSentiment": "Positive" | "Mixed" | "Negative"
 }`
                 }
@@ -74,24 +120,16 @@ Return ONLY valid JSON (no markdown, no code fences) with this exact schema:
       }
     );
 
-    if (!aiRes.ok) {
-      let details: unknown = undefined;
-      try {
-        details = await aiRes.json();
-      } catch {
-        // ignore
-      }
-      if (process.env.NODE_ENV !== "production") {
-        console.error("Gemini request failed", {
-          status: aiRes.status,
-          tmdbID,
-          details,
-        });
-      }
-      return NextResponse.json(
-        { error: "Failed to generate AI analysis" },
-        { status: 502 }
-      );
+    if (!aiRes || !aiRes.ok) {
+      console.error("Gemini failed after retries", {
+        status: aiRes?.status,
+        tmdbID,
+      });
+
+      return NextResponse.json({
+        success: false,
+        error: "AI service temporarily unavailable",
+      });
     }
 
     const aiData = await aiRes.json();
@@ -111,40 +149,44 @@ Return ONLY valid JSON (no markdown, no code fences) with this exact schema:
 
       const parsed = JSON.parse(cleaned);
 
-      const parsedSummary = parsed.aiSummary ?? parsed.summary;
-      const parsedSentiment = parsed.aiSentiment ?? parsed.sentiment;
+      if (typeof parsed.aiSummary === "string") {
+        aiSummary = parsed.aiSummary;
+      }
 
-      if (typeof parsedSummary === "string") aiSummary = parsedSummary;
       if (
-        parsedSentiment === "Positive" ||
-        parsedSentiment === "Mixed" ||
-        parsedSentiment === "Negative"
+        parsed.aiSentiment === "Positive" ||
+        parsed.aiSentiment === "Mixed" ||
+        parsed.aiSentiment === "Negative"
       ) {
-        aiSentiment = parsedSentiment;
+        aiSentiment = parsed.aiSentiment;
       }
-
-    } catch {
-      if (process.env.NODE_ENV !== "production") {
-        console.error("Failed to parse Gemini JSON response", { tmdbID });
-      }
+    } catch (err) {
+      console.error("Gemini JSON parse failed", { tmdbID });
+      return NextResponse.json({
+        success: false,
+        error: "Unexpected AI processing error",
+      });
     }
 
     if (!aiSummary) {
-      return NextResponse.json(
-        { error: "AI summary was not returned" },
-        { status: 502 }
-      );
+      return NextResponse.json({
+        success: false,
+        error: "AI service returned empty response",
+      });
     }
 
-    return NextResponse.json({ aiSummary, aiSentiment });
+    return NextResponse.json({
+      success: true,
+      summary: aiSummary,
+      sentiment: aiSentiment,
+    });
 
   } catch (error) {
-    if (process.env.NODE_ENV !== "production") {
-      console.error("AI analysis route failed", error);
-    }
-    return NextResponse.json(
-      { error: "Failed to generate AI analysis" },
-      { status: 500 }
-    );
+    console.error("AI analysis route crashed", error);
+
+    return NextResponse.json({
+      success: false,
+      error: "Unexpected AI processing error",
+    });
   }
 }

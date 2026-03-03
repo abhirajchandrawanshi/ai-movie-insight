@@ -5,7 +5,7 @@ export type Movie = {
   year: string;
   rating: string;
   cast: string;
-  tmdbID: string | null;
+  tmdbID: string;
 };
 
 export type AISentiment = "Positive" | "Mixed" | "Negative";

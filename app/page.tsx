@@ -11,10 +11,65 @@ export default function Home() {
   const [movie, setMovie] = useState<Movie | null>(null);
   const [ai, setAI] = useState<AIAnalysis | null>(null);
   const [loading, setLoading] = useState(false);
-  const [aiLoading, setAiLoading] = useState(false);
+  const [isAiLoading, setIsAiLoading] = useState(false);
   const [error, setError] = useState("");
   const [aiError, setAiError] = useState("");
 
+  // 🔹 Dedicated AI Fetch Function (Reusable for Retry)
+  const fetchAiInsight = async (tmdbID: string, title: string) => {
+    setIsAiLoading(true);
+    setAiError("");
+    setAI(null);
+
+    try {
+      const aiRes = await fetch(
+        `/api/analysis?tmdbID=${tmdbID}&title=${encodeURIComponent(title)}`
+      );
+
+      const aiData = await aiRes.json().catch(() => ({}));
+
+      const success = aiRes.ok && (aiData as any)?.success === true;
+
+      if (!success) {
+        setAiError(
+          (aiData as any)?.error ||
+            "AI insights are temporarily unavailable. Please try again shortly."
+        );
+        return;
+      }
+
+      const summary = (aiData as any)?.summary;
+      const sentiment = (aiData as any)?.sentiment;
+
+      const validSentiment =
+        sentiment === "Positive" ||
+        sentiment === "Mixed" ||
+        sentiment === "Negative";
+
+      if (typeof summary === "string" && validSentiment) {
+        setAI({
+          aiSummary: summary,
+          aiSentiment: sentiment,
+        });
+      } else {
+        setAiError(
+          "AI insights are temporarily unavailable. Please try again shortly."
+        );
+      }
+    } catch (err) {
+      setAiError(
+        "AI insights are temporarily unavailable. Please try again shortly."
+      );
+
+      if (process.env.NODE_ENV !== "production") {
+        console.error("AI analysis exception", err);
+      }
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
+
+  // 🔹 Metadata Fetch Function
   const fetchMovie = async () => {
     if (!imdbID) return alert("Please enter IMDb ID");
 
@@ -25,8 +80,8 @@ export default function Home() {
       setMovie(null);
       setAI(null);
 
-      // 1️⃣ Fetch metadata
       const res = await fetch(`/api/movie?id=${imdbID}`);
+
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
         setError((errData as any)?.error || "Movie not found");
@@ -36,63 +91,14 @@ export default function Home() {
       const data = (await res.json()) as Movie;
       setMovie(data);
 
-      // 2️⃣ Fetch AI separately
+      // Call AI separately (clean separation)
       if (data.tmdbID) {
-        setAiLoading(true);
-        setAiError("");
-
-        try {
-          const aiRes = await fetch(
-            `/api/analysis?tmdbID=${data.tmdbID}&title=${encodeURIComponent(
-              data.title
-            )}`
-          );
-
-          if (!aiRes.ok) {
-            const errAi = await aiRes.json().catch(() => ({}));
-            setAI(null);
-            setAiError(
-              (errAi as any)?.error ||
-                "AI analysis failed to generate for this title."
-            );
-            if (process.env.NODE_ENV !== "production") {
-              // eslint-disable-next-line no-console
-              console.error("AI analysis request failed", errAi);
-            }
-            return;
-          }
-
-          const aiData = await aiRes.json();
-          if (
-            typeof (aiData as any)?.aiSummary === "string" &&
-            typeof (aiData as any)?.aiSentiment === "string"
-          ) {
-            setAI(aiData as AIAnalysis);
-          } else {
-            setAI(null);
-            setAiError("AI analysis did not return a valid summary.");
-            if (process.env.NODE_ENV !== "production") {
-              // eslint-disable-next-line no-console
-              console.error("Invalid AI analysis payload", aiData);
-            }
-          }
-        } catch (e) {
-          setAI(null);
-          setAiError("AI analysis failed to generate for this title.");
-          if (process.env.NODE_ENV !== "production") {
-            // eslint-disable-next-line no-console
-            console.error("AI analysis exception", e);
-          }
-        } finally {
-          setAiLoading(false);
-        }
+        await fetchAiInsight(data.tmdbID, data.title);
       }
-
     } catch (err) {
       setError("Something went wrong.");
-      setAiLoading(false);
+
       if (process.env.NODE_ENV !== "production") {
-        // eslint-disable-next-line no-console
         console.error("Movie fetch exception", err);
       }
     } finally {
@@ -146,8 +152,20 @@ export default function Home() {
         {movie && (
           <div className="mt-10 w-full max-w-6xl space-y-6 sm:mt-12">
             <MovieCard movie={movie} />
-            {(aiLoading || aiError || ai) && (
-              <AIInsights ai={ai} aiLoading={aiLoading} aiError={aiError} />
+            {(isAiLoading || aiError || ai) && (
+              // <AIInsights
+              //   ai={ai}
+              //   aiLoading={isAiLoading}
+              //   aiError={aiError}
+              // />
+              <AIInsights
+  ai={ai}
+  aiLoading={isAiLoading}
+  aiError={aiError}
+  onRetry={() =>
+    movie && fetchAiInsight(movie.tmdbID, movie.title)
+  }
+/>
             )}
           </div>
         )}

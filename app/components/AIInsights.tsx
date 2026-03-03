@@ -4,9 +4,15 @@ type Props = {
   ai: AIAnalysis | null;
   aiLoading: boolean;
   aiError?: string;
+  onRetry: () => void;
 };
 
-export default function AIInsights({ ai, aiLoading, aiError }: Props) {
+export default function AIInsights({
+  ai,
+  aiLoading,
+  aiError,
+  onRetry,
+}: Props) {
   const aiSummary = ai?.aiSummary ? ai.aiSummary.replace(/\s+/g, " ").trim() : "";
   const sentiments = ["Positive", "Mixed", "Negative"] as const;
 
@@ -33,24 +39,25 @@ export default function AIInsights({ ai, aiLoading, aiError }: Props) {
         </div>
       )}
 
-      {!aiLoading && aiError && (
-        <p className="mt-5 text-sm text-white/60 sm:text-base">
-          Audience insight is being prepared. Please refresh or try again shortly.
-        </p>
-      )}
+     {!aiLoading && aiError && (
+  <div className="mt-5 flex flex-col items-center gap-4 text-center">
+    <p className="text-sm text-red-400 sm:text-base">
+      AI insights are temporarily unavailable. Please try again shortly.
+    </p>
+    <button
+      onClick={onRetry}
+      className="rounded-lg border border-white/20 bg-white/10 px-4 py-2 text-xs font-medium transition-all hover:bg-white/20"
+    >
+      🔄 Retry Analysis
+    </button>
+  </div>
+)}
 
       {!aiLoading && !aiError && aiSummary && (
         <p className="mt-4 text-lg leading-relaxed text-gray-200">
           {aiSummary}
         </p>
       )}
-
-      {!aiLoading && !aiError && !aiSummary && (
-        <p className="mt-5 text-sm text-white/60 sm:text-base">
-          Audience insight is being prepared. Please refresh or try again shortly.
-        </p>
-      )}
-
       <div className="mt-8 border-t border-white/10 pt-6">
         <p className="text-xs font-medium uppercase tracking-widest text-gray-400">
           Overall Sentiment

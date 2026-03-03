@@ -1,3 +1,4 @@
+export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 
 const wait = (ms: number) => new Promise((res) => setTimeout(res, ms));
@@ -6,7 +7,8 @@ async function fetchGeminiWithRetry(
   url: string,
   options: RequestInit,
   retries = 3
-) {
+): Promise<Response> {
+
   for (let i = 0; i < retries; i++) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
@@ -19,32 +21,31 @@ async function fetchGeminiWithRetry(
 
       clearTimeout(timeout);
 
-      // Success
       if (res.ok) return res;
 
-      // Retry only on 503
       if (res.status === 503 && i < retries - 1) {
-        const delay = Math.pow(2, i) * 1000; // 1s, 2s, 4s
-        console.log(`Gemini busy, retrying in ${delay}ms...`);
+        const delay = Math.pow(2, i) * 1000;
+        console.log(`503 received. Retrying in ${delay}ms...`);
         await wait(delay);
         continue;
       }
 
       return res;
-    } catch (err: any) {
+
+    } catch (err) {
       clearTimeout(timeout);
 
-      // Retry network failures
       if (i < retries - 1) {
         const delay = Math.pow(2, i) * 1000;
-        console.log(`Network issue, retrying in ${delay}ms...`);
+        console.log(`Network issue. Retrying in ${delay}ms...`);
         await wait(delay);
         continue;
       }
 
-      throw err;
+      throw err; // throw real error
     }
   }
+  throw new Error("All retry attempts failed");
 }
 
 export async function GET(req: Request) {
@@ -58,12 +59,23 @@ export async function GET(req: Request) {
       { status: 400 }
     );
   }
+  console.log("TMDB KEY exists:", !!process.env.TMDB_API_KEY);
+console.log("TMDB ID:", tmdbID);
 
   try {
     // Fetch Reviews
-    const reviewRes = await fetch(
-      `https://api.themoviedb.org/3/movie/${tmdbID}/reviews?api_key=${process.env.TMDB_API_KEY}`
-    );
+    // const reviewRes = await fetch(
+    //   `https://api.themoviedb.org/3/movie/${tmdbID}/reviews?api_key=${process.env.TMDB_API_KEY}`
+    // );
+    const reviewRes = await fetchGeminiWithRetry(
+  `https://api.themoviedb.org/3/movie/${tmdbID}/reviews?api_key=${process.env.TMDB_API_KEY}`,
+  {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+    },
+  }
+);
 
     if (!reviewRes.ok) {
       console.error("TMDb reviews fetch failed", {
@@ -87,7 +99,7 @@ export async function GET(req: Request) {
 
     // Gemini Call
     const aiRes = await fetchGeminiWithRetry(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${process.env.GEMINI_API_KEY}`,
+`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

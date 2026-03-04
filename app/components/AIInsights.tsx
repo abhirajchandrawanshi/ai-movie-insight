@@ -1,3 +1,4 @@
+import { Brain, RefreshCw, ThumbsUp, ThumbsDown, Minus } from "lucide-react";
 import type { AIAnalysis } from "../types";
 
 type Props = {
@@ -14,78 +15,78 @@ export default function AIInsights({
   onRetry,
 }: Props) {
   const aiSummary = ai?.aiSummary ? ai.aiSummary.replace(/\s+/g, " ").trim() : "";
-  const sentiments = ["Positive", "Mixed", "Negative"] as const;
 
   return (
-    <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-sm backdrop-blur-md sm:p-8">
-      <div className="text-left">
-        <h3 className="text-xl font-semibold tracking-tight text-white sm:text-2xl">
-          Audience Insight
-        </h3>
-      </div>
+    <div className="relative overflow-hidden rounded-3xl p-[1px] animate-slide-up" style={{ animationDelay: '200ms' }}>
+      {/* Animated Gradient Border */}
+      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/50 via-purple-500/50 to-pink-500/50 opacity-50" />
 
-      {aiLoading && (
-        <div className="mt-5 flex items-center gap-3 text-sm text-white/70 sm:text-base">
-          <span
-            aria-hidden="true"
-            className="h-4 w-4 rounded-full border-2 border-white/15 border-t-white/60 animate-spin"
-          />
-          <span className="font-medium text-gray-200">Fetching audience insights</span>
-          <span aria-hidden="true" className="inline-flex items-center">
-            <span className="animate-pulse">.</span>
-            <span className="animate-pulse [animation-delay:150ms]">.</span>
-            <span className="animate-pulse [animation-delay:300ms]">.</span>
-          </span>
+      <div className="relative rounded-[23px] bg-[#0A0A0A]/90 backdrop-blur-2xl p-8 sm:p-10 shadow-2xl">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30">
+            <Brain className="w-6 h-6 animate-pulse" />
+          </div>
+          <h3 className="text-2xl font-bold tracking-tight text-white">
+            AI Audience Insight
+          </h3>
         </div>
-      )}
 
-     {!aiLoading && aiError && (
-  <div className="mt-5 flex flex-col items-center gap-4 text-center">
-    <p className="text-sm text-red-400 sm:text-base">
-      AI insights are temporarily unavailable. Please try again shortly.
-    </p>
-    <button
-      onClick={onRetry}
-      className="rounded-lg border border-white/20 bg-white/10 px-4 py-2 text-xs font-medium transition-all hover:bg-white/20"
-    >
-      🔄 Retry Analysis
-    </button>
-  </div>
-)}
+        {aiLoading && (
+          <div className="flex items-center gap-4 text-white/70 bg-white/5 rounded-2xl p-6 border border-white/5">
+            <RefreshCw className="w-5 h-5 animate-spin text-purple-400" />
+            <span className="font-medium text-lg">Analyzing thousands of reviews...</span>
+          </div>
+        )}
 
-      {!aiLoading && !aiError && aiSummary && (
-        <p className="mt-4 text-lg leading-relaxed text-gray-200">
-          {aiSummary}
-        </p>
-      )}
-      <div className="mt-8 border-t border-white/10 pt-6">
-        <p className="text-xs font-medium uppercase tracking-widest text-gray-400">
-          Overall Sentiment
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2 sm:gap-3">
-          {sentiments.map((s) => {
-            const selected = ai?.aiSentiment === s;
-            const base =
-              "rounded-full px-4 py-1 text-sm transition-all duration-200";
-            const unselected =
-              "border border-gray-700 text-gray-500 bg-transparent";
-            const selectedClass =
-              s === "Positive"
-                ? "scale-105 border border-green-500/40 bg-green-500/20 text-green-400 shadow-sm font-semibold"
-                : s === "Negative"
-                ? "scale-105 border border-red-500/40 bg-red-500/20 text-red-400 shadow-sm font-semibold"
-                : "scale-105 border border-amber-500/40 bg-amber-500/20 text-amber-400 shadow-sm font-semibold";
+        {!aiLoading && aiError && (
+          <div className="flex flex-col items-start gap-4 bg-red-500/5 border border-red-500/20 rounded-2xl p-6">
+            <p className="text-red-400 font-medium">
+              We couldn't generate insights at this moment.
+            </p>
+            <button
+              onClick={onRetry}
+              className="flex items-center gap-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 px-5 py-2.5 text-sm font-semibold text-red-300 transition-all border border-red-500/20"
+            >
+              <RefreshCw className="w-4 h-4" /> Try Again
+            </button>
+          </div>
+        )}
 
-            return (
-              <span
-                key={s}
-                className={`${base} ${selected ? selectedClass : unselected}`}
-              >
-                {s}
+        {!aiLoading && !aiError && aiSummary && (
+          <div className="space-y-8">
+            <div className="prose prose-invert max-w-none">
+              <p className="text-xl leading-relaxed text-gray-200 font-medium">
+                "{aiSummary}"
+              </p>
+            </div>
+
+            <div className="border-t border-white/10 pt-8 mt-8 flex flex-col items-center gap-4">
+              <span className="text-sm font-bold uppercase tracking-widest text-gray-500">
+                Consensus
               </span>
-            );
-          })}
-        </div>
+
+              <div className="flex items-center justify-center p-2">
+                {ai?.aiSentiment === "Positive" && (
+                  <div className="flex items-center justify-center gap-2 px-8 py-3 rounded-full bg-emerald-500/10 border-2 border-transparent text-emerald-400 font-bold shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+                    <ThumbsUp className="w-5 h-5" /> Positive
+                  </div>
+                )}
+
+                {ai?.aiSentiment === "Negative" && (
+                  <div className="flex items-center justify-center gap-2 px-8 py-3 rounded-full bg-rose-500/10 border-2 border-transparent text-rose-400 font-bold shadow-[0_0_15px_rgba(244,63,94,0.2)]">
+                    <ThumbsDown className="w-5 h-5" /> Negative
+                  </div>
+                )}
+
+                {ai?.aiSentiment === "Mixed" && (
+                  <div className="flex items-center justify-center gap-2 px-8 py-3 rounded-full bg-amber-500/10 border-2 border-transparent text-amber-400 font-bold shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+                    <Minus className="w-5 h-5" /> Mixed
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

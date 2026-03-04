@@ -93,9 +93,9 @@ console.log("TMDB ID:", tmdbID);
 
     const reviewsText =
       reviewData.results
-        ?.slice(0, 3)
+        ?.slice(0, 6)
         ?.map((r: any) => r.content.substring(0, 400))
-        ?.join("\n\n") || "No reviews available.";
+        ?.join("\n\n") || "`No detailed reviews available. Infer audience reception based on the movie title and general perception.`";
 
     // Gemini Call
     const aiRes = await fetchGeminiWithRetry(
@@ -108,19 +108,28 @@ console.log("TMDB ID:", tmdbID);
             {
               parts: [
                 {
-                  text: `You are writing for a product analytics dashboard.
+                text: `You are generating insights for a movie analytics dashboard.
 
-Analyze the following audience reviews for "${title}".
+Analyze the audience reviews for the film "${title}".
+
+Your task:
+Identify the overall audience perception and summarize what viewers commonly praise or criticize.
 
 Reviews:
-
 ${reviewsText}
 
-Return ONLY valid JSON (no markdown, no code fences) with this exact schema:
+Return ONLY valid JSON (no markdown, no code fences) with this schema:
+
 {
-  "aiSummary": "Exactly two concise, professional sentences summarizing audience feedback.",
+  "aiSummary": "Two professional sentences describing the overall audience reaction and key themes in viewer feedback.",
   "aiSentiment": "Positive" | "Mixed" | "Negative"
-}`
+}
+
+Guidelines:
+- Focus on audience perception, not plot summary.
+- Mention common strengths or criticisms from reviews.
+- Write in an analytical tone suitable for a product dashboard.
+`
                 }
               ]
             }

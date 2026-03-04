@@ -148,6 +148,41 @@ Gemini returns structured JSON as instructed.
 AI tools were used to accelerate iteration and refine prompt design.
 All architectural decisions, implementation logic, and debugging were independently understood and implemented.
 
+📁 Project Structure:-
+
+ai-movie-insight/
+│
+├── app/
+│   ├── api/
+│   │   └── analysis/
+│   │       └── route.ts
+│   └── components/
+│       ├── MovieCard.tsx
+│       ├── SearchBar.tsx
+│       └── AIInsights.tsx
+│
+├── lib/
+│   ├── tmdb.ts
+│   └── openai.ts
+│
+├── hooks/
+│   └── useMovieSearch.ts
+│
+├── utils/
+│   ├── formatRating.ts
+│   └── truncateText.ts
+│
+├── types/
+│   ├── movie.ts
+│   └── ai.ts
+│
+├── styles/
+├── public/
+│   └── images/
+│
+├── __tests__/
+└── README.md
+
 👨‍💻 Author:
 Abhiraj Chandrawanshi
 B.Tech Computer Science
